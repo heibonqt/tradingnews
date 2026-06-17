@@ -2,38 +2,40 @@ name: USD ForexFactory Weekly Screenshot
 
 on:
   schedule:
-    # Runs every Monday at 08:00 UTC. Adjust to your timezone (cron is UTC).
-    # Use https://crontab.guru to check the schedule.
+    # Every Sunday 16:00 UTC
     - cron: '0 16 * * 0'
-  workflow_dispatch: {} # allows manual "Run workflow" button in GitHub UI too
+  workflow_dispatch:
 
 jobs:
   screenshot-and-post:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
 
-      - name: Run bot
+      - name: Run ForexFactory bot
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: node ff-usd-screenshot.js
 
-      - name: Upload debug screenshot on failure
+      - name: Upload debug files on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: debug-screenshot
-          path: debug-fullpage.png
+          name: forexfactory-debug
+          path: |
+            *.png
+            *.html
           if-no-files-found: ignore
