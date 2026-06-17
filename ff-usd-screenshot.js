@@ -9,19 +9,46 @@ if (!DISCORD_WEBHOOK_URL) {
   console.error('Missing DISCORD_WEBHOOK_URL');
   process.exit(1);
 }
+async function gotoWithRetry(page, url, maxAttempts = 3) {
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log("Attempt " + attempt + " of " + maxAttempts + "...");
+      await page.goto(url, {
+        waitUntil: 'domcontentloaded',
+        timeout: 45000,
+      });
+      // Give the page a moment to render its dynamic content
+      await page.waitForSelector('tr.calendar__row', { timeout: 20000 });
+      return;
+    } catch (err) {
+      lastErr = err;
+      console.warn(
+        "Attempt " + attempt + " failed: " + err.message
+      );
+      if (attempt < maxAttempts) {
+        await page.waitForTimeout(5000);
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function run() {
   const browser = await chromium.launch({
     headless: true,
+    args: ['--disable-blink-features=AutomationControlled'],
   });
   const page = await browser.newPage({
     viewport: { width: 1400, height: 1200 },
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    locale: 'en-US',
+    timezoneId: 'America/New_York',
   });
   try {
     console.log('Opening ForexFactory...');
-    await page.goto(CALENDAR_URL, {
-      waitUntil: 'networkidle',
-      timeout: 60000,
-    });
+    await gotoWithRetry(page, CALENDAR_URL);
     await page.waitForTimeout(3000);
     const events = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('tr.calendar__row')];
@@ -67,6 +94,12 @@ async function run() {
   } catch (err) {
     console.error(err);
     process.exitCode = 1;
+    try {
+      await page.screenshot({ path: 'debug-screenshot.png', fullPage: true });
+      console.log('Saved debug-screenshot.png');
+    } catch (shotErr) {
+      console.error('Could not save debug screenshot: ' + shotErr.message);
+    }
   } finally {
     await browser.close();
   }
