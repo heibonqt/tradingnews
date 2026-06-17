@@ -1,0 +1,17 @@
+{
+  "name": "ff-usd-discord-bot",
+  "version": "1.0.0",
+  "description": "Screenshots USD news from ForexFactory weekly calendar and posts to Discord via webhook",
+  "main": "ff-usd-screenshot.js",
+  "scripts": {
+    "start": "node ff-usd-screenshot.js",
+    "debug": "DEBUG=true node ff-usd-screenshot.js",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.45.0",
+    "dotenv": "^16.4.5",
+    "form-data": "^4.0.0",
+    "node-fetch": "^3.3.2"
+  }
+}
