@@ -67,66 +67,136 @@ async function gotoWithRetry(page, url, maxAttempts = 3) {
 
   throw lastErr;
 }
+function formatPHT(dateStr, timeStr) {
+  try {
+    const currentYear = new Date().getFullYear();
 
-async function sendToDiscord(events) {
-  const fetch = (await import('node-fetch')).default;
-
-  const high = [];
-  const medium = [];
-  const low = [];
-
-  for (const e of events) {
-    const line = `${e.date} ${e.time} — ${e.event}`;
-
-    if (e.impact === 'High') {
-      high.push(line);
-    } else if (e.impact === 'Medium') {
-      medium.push(line);
-    } else {
-      low.push(line);
+    if (
+      !dateStr ||
+      !timeStr ||
+      timeStr.toLowerCase().includes('all day') ||
+      timeStr.toLowerCase().includes('tentative')
+    ) {
+      return `${dateStr} ${timeStr}`;
     }
+
+    const parsed = new Date(
+      `${dateStr} ${currentYear} ${timeStr} GMT-4`
+    );
+
+    return parsed.toLocaleString('en-PH', {
+      timeZone: 'Asia/Manila',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return `${dateStr} ${timeStr}`;
   }
+}
+async function sendToDiscord(events) {
+const fetch = (await import('node-fetch')).default;
 
-  const embed = {
-    title: '📅 USD News This Week',
-    description:
-      'ForexFactory weekly USD economic calendar summary',
-    color: 0xf1c40f,
-    fields: [
-      {
-        name: '🔴 High Impact',
-        value: high.length
-          ? high.slice(0, 20).join('\n')
-          : 'No high impact events',
-      },
-      {
-        name: '🟠 Medium Impact',
-        value: medium.length
-          ? medium.slice(0, 20).join('\n')
-          : 'No medium impact events',
-      },
-      {
-        name: '🟡 Low Impact',
-        value: low.length
-          ? low.slice(0, 20).join('\n')
-          : 'No low impact events',
-      },
-    ],
-    footer: {
-      text: 'ForexFactory USD Weekly Calendar',
-    },
-    timestamp: new Date().toISOString(),
-  };
+const high = [];
+const medium = [];
 
-  const response = await fetch(DISCORD_WEBHOOK_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      embeds: [embed],
-    }),
+const currentYear = new Date().getFullYear();
+
+function formatPHT(dateStr, timeStr) {
+try {
+if (
+!dateStr ||
+!timeStr ||
+timeStr.toLowerCase().includes('all day') ||
+timeStr.toLowerCase().includes('tentative')
+) {
+return `${dateStr} ${timeStr}`;
+}
+
+```
+  const parsed = new Date(
+    `${dateStr} ${currentYear} ${timeStr} GMT-4`
+  );
+
+  return parsed.toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
   });
+} catch {
+  return `${dateStr} ${timeStr}`;
+}
+```
+
+}
+
+for (const e of events) {
+const when = formatPHT(e.date, e.time);
+
+```
+const line =
+  `📅 ${when}\n` +
+  `📊 ${e.event}`;
+
+if (e.impact === 'High') {
+  high.push(line);
+} else if (e.impact === 'Medium') {
+  medium.push(line);
+}
+```
+
+}
+
+const embed = {
+title: '🇺🇸 USD Economic Calendar (Philippine Time)',
+description:
+'Important USD news events for the week. All times shown in PHT (GMT+8).',
+color: 0xf1c40f,
+fields: [
+{
+name: '🔴 High Impact',
+value: high.length
+? high.join('\n\n').slice(0, 1024)
+: 'No high impact events',
+},
+{
+name: '🟠 Medium Impact',
+value: medium.length
+? medium.join('\n\n').slice(0, 1024)
+: 'No medium impact events',
+},
+],
+footer: {
+text: 'ForexFactory • Times converted to Philippine Time',
+},
+timestamp: new Date().toISOString(),
+};
+
+const response = await fetch(DISCORD_WEBHOOK_URL, {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+},
+body: JSON.stringify({
+embeds: [embed],
+}),
+});
+
+if (!response.ok) {
+const text = await response.text();
+throw new Error(
+`Discord webhook failed: ${response.status} ${text}`
+);
+}
+}
+
 
   if (!response.ok) {
     const text = await response.text();
