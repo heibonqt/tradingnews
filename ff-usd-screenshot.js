@@ -3,9 +3,12 @@
  * Playwright + Discord Webhook
  */
 
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-extra');
+const StealthPlugin = require('playwright-extra-plugin-stealth');
 const fs = require('fs');
 require('dotenv').config();
+
+chromium.use(StealthPlugin());
 
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 const CALENDAR_URL = 'https://www.forexfactory.com/calendar?week=this';
@@ -23,10 +26,11 @@ async function gotoWithRetry(page, url, maxAttempts = 3) {
       console.log(`Attempt ${attempt} of ${maxAttempts}...`);
 
       await page.goto(url, {
-        waitUntil: 'networkidle',
-        timeout: 60000,
+        waitUntil: 'domcontentloaded',
+        timeout: 90000,
       });
 
+      // Wait for calendar rows to actually appear in the DOM
       await page.waitForFunction(
         () => document.querySelectorAll('tr.calendar__row').length > 20,
         { timeout: 30000 }
@@ -157,7 +161,7 @@ async function run() {
     console.log('Opening ForexFactory...');
 
     await gotoWithRetry(page, CALENDAR_URL);
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(3000);
 
     const events = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('tr.calendar__row')];
