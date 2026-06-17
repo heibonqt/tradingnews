@@ -4,9 +4,8 @@
  */
 
 const { chromium } = require('playwright-extra');
-const StealthPlugin = require('playwright-extra-plugin-stealth');
-const fs = require('fs');
-require('dotenv').config();
+const stealth = require('puppeteer-extra-plugin-stealth')();
+chromium.use(stealth);
 
 chromium.use(StealthPlugin());
 
